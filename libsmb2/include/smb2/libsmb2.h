@@ -18,7 +18,7 @@
 
 #ifndef _LIBSMB2_H_
 #define _LIBSMB2_H_
-
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
