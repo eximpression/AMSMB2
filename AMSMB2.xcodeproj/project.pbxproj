@@ -139,9 +139,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 79FDFE6820AD439F00749FB5 /* Build configuration list for PBXNativeTarget "AMSMB2" */;
 			buildPhases = (
+				79FDFE5120AD439F00749FB5 /* Headers */,
 				79FDFE4F20AD439F00749FB5 /* Sources */,
 				79FDFE5020AD439F00749FB5 /* Frameworks */,
-				79FDFE5120AD439F00749FB5 /* Headers */,
 				79FDFE5220AD439F00749FB5 /* Resources */,
 			);
 			buildRules = (
