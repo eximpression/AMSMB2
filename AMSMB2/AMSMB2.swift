@@ -19,7 +19,9 @@ public class AMSMB2: NSObject, NSSecureCoding, Codable, NSCopying, CustomReflect
     fileprivate typealias CopyProgressHandler = ((_ bytes: Int64, _ soFar: Int64, _ total: Int64) -> Bool)?
     
     fileprivate var context: SMB2Context?
-    
+    public share: String {
+        return context?.share ?? ""
+    }
     public let url: URL
     fileprivate let _domain: String
     fileprivate var _workstation: String
