@@ -721,6 +721,31 @@ public class AMSMB2: NSObject, NSSecureCoding, Codable, NSCopying, CustomReflect
             try self.read(context: context, path: path, to: stream, progress: progress)
         }
     }
+    
+    /**
+     Downloads file contents to a local url. With reporting progress on about every 1MiB.
+     
+     - Note: if a file already exists on given url, This function will overwrite to that url.
+     
+     - Note: given url must be local file url otherwise it will throw error.
+     
+     - Parameters:
+       - atPath: path of file to be downloaded from.
+       - at: url of a local file to be written to.
+       - range: append
+       - progress: reports progress of written bytes count so farand expected length of contents.
+           User must return `true` if they want to continuing or `false` to abort copying.
+       - completionHandler: closure will be run after uploading is completed.
+     */
+    open func downloadItem(atPath path: String, to url: URL, range: Range<Int64> = 0..<Int64.max, progress: ReadProgressHandler,
+                           completionHandler: SimpleCompletionHandler) {
+        with(completionHandler: completionHandler) { context in
+            guard url.isFileURL, let stream = OutputStream(url: url, append: true) else {
+                throw POSIXError(.EIO, description: "Could not create Stream from given URL, or given URL is not a local file.")
+            }
+            try self.read(context: context, path: path, range: range, to: stream, progress: progress)
+        }
+    }
 }
 
 extension AMSMB2 {
