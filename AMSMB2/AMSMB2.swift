@@ -116,7 +116,7 @@ public class AMSMB2: NSObject, NSSecureCoding, Codable, NSCopying, CustomReflect
         _workstation = workstation
         _user = user
         _password = credential?.password ?? ""
-        _timeout = 60.0
+        _timeout = 10.0
         super.init()
     }
     
