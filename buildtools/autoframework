@@ -38,7 +38,7 @@ STATICDIR="$PREFIX/Static"
 if [ -z "$ARCHS" ]; then
   case $OS in
     macos | macosx )
-      ARCHS="x86_64"
+      ARCHS="x86_64 arm64"
       ;;
     tvos )
       ARCHS="x86_64 arm64"
