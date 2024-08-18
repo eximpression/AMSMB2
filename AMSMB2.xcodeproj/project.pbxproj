@@ -421,7 +421,7 @@
 				"OTHER_LDFLAGS[sdk=appletvos*]" = "-lsmb2-tvos";
 				"OTHER_LDFLAGS[sdk=appletvsimulator*]" = "-lsmb2-tvos";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = "-lsmb2-ios";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "-lsmb2-ios";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "-lsmb2-ios_sim";
 				"OTHER_LDFLAGS[sdk=macosx*]" = "-lsmb2-macos";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mousavian.AMSMB2;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -463,7 +463,7 @@
 				"OTHER_LDFLAGS[sdk=appletvos*]" = "-lsmb2-tvos";
 				"OTHER_LDFLAGS[sdk=appletvsimulator*]" = "-lsmb2-tvos";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = "-lsmb2-ios";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "-lsmb2-ios";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "-lsmb2-ios_sim";
 				"OTHER_LDFLAGS[sdk=macosx*]" = "-lsmb2-macos";
 				PRODUCT_BUNDLE_IDENTIFIER = com.mousavian.AMSMB2;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
