@@ -21,6 +21,7 @@
 
 #ifdef __APPLE__ /* Some platforms doesn´t support stdint.h */
 #include <stdint.h>
+#include <stddef.h>
 #endif
 
 #ifdef __cplusplus
