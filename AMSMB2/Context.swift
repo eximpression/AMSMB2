@@ -68,7 +68,7 @@ final class SMB2Context: CustomDebugStringConvertible, CustomReflectable {
 extension SMB2Context {
     var workstation: String {
         get {
-            return (unsafe?.pointee.workstation).map(String.init(cString:)) ?? ""
+            return (`unsafe`?.pointee.workstation).map(String.init(cString:)) ?? ""
         }
         set {
             try? withThreadSafeContext { (context) in
@@ -79,7 +79,7 @@ extension SMB2Context {
     
     var domain: String {
         get {
-            return (unsafe?.pointee.domain).map(String.init(cString:)) ?? ""
+            return (`unsafe`?.pointee.domain).map(String.init(cString:)) ?? ""
         }
         set {
             try? withThreadSafeContext { (context) in
@@ -90,7 +90,7 @@ extension SMB2Context {
     
     var user: String {
         get {
-            return (unsafe?.pointee.user).map(String.init(cString:)) ?? ""
+            return (`unsafe`?.pointee.user).map(String.init(cString:)) ?? ""
         }
         set {
             try? withThreadSafeContext { (context) in
@@ -101,7 +101,7 @@ extension SMB2Context {
     
     var password: String {
         get {
-            return (unsafe?.pointee.password).map(String.init(cString:)) ?? ""
+            return (`unsafe`?.pointee.password).map(String.init(cString:)) ?? ""
         }
         set {
             try? withThreadSafeContext { (context) in
@@ -112,7 +112,7 @@ extension SMB2Context {
     
     var securityMode: NegotiateSigning {
         get {
-            return (unsafe?.pointee.security_mode).flatMap(NegotiateSigning.init(rawValue:)) ?? []
+            return (`unsafe`?.pointee.security_mode).flatMap(NegotiateSigning.init(rawValue:)) ?? []
         }
         set {
             try? withThreadSafeContext { (context) in
@@ -123,7 +123,7 @@ extension SMB2Context {
     
     var seal: Bool {
         get {
-            return unsafe?.pointee.seal ?? 0 != 0
+            return `unsafe`?.pointee.seal ?? 0 != 0
         }
         set {
             try? withThreadSafeContext { (context) in
@@ -134,7 +134,7 @@ extension SMB2Context {
     
     var authentication: Security {
         get {
-            return unsafe?.pointee.sec ?? SMB2_SEC_UNDEFINED
+            return `unsafe`?.pointee.sec ?? SMB2_SEC_UNDEFINED
         }
         set {
             try? withThreadSafeContext { (context) in
@@ -152,15 +152,15 @@ extension SMB2Context {
     }
     
     var server: String? {
-        return unsafe?.pointee.server.map(String.init(cString:))
+        return `unsafe`?.pointee.server.map(String.init(cString:))
     }
     
     var share: String? {
-        return unsafe?.pointee.share.map(String.init(cString:))
+        return `unsafe`?.pointee.share.map(String.init(cString:))
     }
     
     var version: Version {
-        return (unsafe?.pointee.dialect).map { Version(rawValue: UInt32($0)) } ?? .any
+        return (`unsafe`?.pointee.dialect).map { Version(rawValue: UInt32($0)) } ?? .any
     }
     
     var isConnected: Bool {
