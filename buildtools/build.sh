@@ -69,6 +69,6 @@ echo  "Copying additional headers"
 cp    "libsmb2/include/libsmb2-private.h" "${PACKAGE_DIRECTORY}/libsmb2/include/"
 cp    "module.modulemap"                  "${PACKAGE_DIRECTORY}/libsmb2/include/"
 
-rm -rf libsmb2
-rm -rf include
-rm -rf lib
+#rm -rf libsmb2
+#rm -rf include
+#rm -rf lib

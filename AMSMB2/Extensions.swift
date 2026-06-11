@@ -2,120 +2,158 @@
 //  Extensions.swift
 //  AMSMB2
 //
-//  Created by Amir Abbas Mousavian.
+//  Created by Amir Abbas on 5/21/18.
 //  Copyright © 2018 Mousavian. Distributed under MIT license.
+//  All rights reserved.
 //
 
 import Foundation
 import SMB2
+#if canImport(System)
+import System
+#else
+import SystemPackage
+#endif
+
+#if !canImport(Darwin)
+let USEC_PER_SEC = 1_000_000
+let NSEC_PER_SEC = 1_000_000_000
+#endif
+
+#if swift(<6.2)
+public typealias SendableMetatype = Any
+#endif
 
 extension Optional {
     func unwrap() throws -> Wrapped {
         guard let self = self else {
-            throw POSIXError(.ENODATA, description: "Invalid/Empty data.")
+            throw POSIXError(.noData, description: "Invalid/Empty data.")
         }
         return self
     }
 }
 
-extension Optional where Wrapped: SMB2Context {
-     func unwrap() throws -> SMB2Context {
-        guard let self = self, self.fileDescriptor >= 0 else {
-            throw POSIXError(.ENOTCONN, description: "SMB2 server not connected.")
+extension Optional where Wrapped: SMB2Client {
+    func unwrap() throws -> SMB2Client {
+        guard let self = self, self.fileDescriptor.isValidSocket else {
+            throw POSIXError(.socketNotConnected, description: "SMB2 server not connected.")
         }
         return self
+    }
+}
+
+extension RawRepresentable where RawValue == UInt32 {
+    init(_ rawValue: Int32) {
+        self.init(rawValue: .init(bitPattern: rawValue))!
+    }
+}
+
+extension RawRepresentable where RawValue == UInt16 {
+    init(_ rawValue: Int16) {
+        self.init(rawValue: .init(bitPattern: rawValue))!
     }
 }
 
 extension POSIXError {
     static func throwIfError<Number: SignedInteger>(_ result: Number, description: String?) throws {
         guard result < 0 else { return }
-        let errno = Int32(-result)
+        let errno = Errno(rawValue: CInt(-result))
         let errorDesc = description.map { "Error code \(errno): \($0)" }
-        throw POSIXError(.init(errno), description: errorDesc)
+        throw POSIXError(errno, description: errorDesc)
     }
     
-    static func throwIfErrorStatus(_ status: UInt32) throws {
-        if status & SMB2_STATUS_SEVERITY_MASK == SMB2_STATUS_SEVERITY_ERROR {
-            let errorNo = nterror_to_errno(status)
-            let description = nterror_to_str(status).map(String.init(cString:))
-            try POSIXError.throwIfError(-errorNo, description: description)
-        }
-    }
-    
-    init(_ code: POSIXError.Code, description: String?) {
-        let userInfo: [String: Any] = description.map({ [NSLocalizedFailureReasonErrorKey: $0] }) ?? [:]
-        self = POSIXError(code, userInfo: userInfo)
+    public init(_ code: Errno, description: String?) {
+        let description = description ?? code.description
+        let userInfo: [String: Any] = [NSLocalizedDescriptionKey: description]
+        self = POSIXError(.init(code), userInfo: userInfo)
     }
 }
 
 extension POSIXErrorCode {
-    init(_ code: Int32) {
-        self = POSIXErrorCode(rawValue: code) ?? .ECANCELED
+    init(_ code: Errno) {
+        self = POSIXErrorCode(rawValue: code.rawValue) ?? .ECANCELED
     }
 }
 
-extension Dictionary where Key == URLResourceKey, Value == Any {
+/// The conformant must be able to be initialized with no arguments.
+///
+/// This is also known as the default initial value.
+protocol EmptyInitializable {
+    init()
+}
+
+/// Booleans can be initialized with no arguments and it would be `false` by default.
+extension Bool: EmptyInitializable {}
+
+extension Dictionary where Key == URLResourceKey {
+    private func value<T>(forKey key: Key) -> T? {
+        self[key] as? T
+    }
+
+    private func value<T>(forKey key: Key) -> T where T: EmptyInitializable {
+        self[key] as? T ?? T()
+    }
+
     public var name: String? {
-        return self[.nameKey] as? String
+        value(forKey: .nameKey)
     }
-    
+
     public var path: String? {
-        return self[.pathKey] as? String
+        value(forKey: .pathKey)
     }
-    
+
     public var fileResourceType: URLFileResourceType? {
-        return self[.fileResourceTypeKey] as? URLFileResourceType
+        value(forKey: .fileResourceTypeKey)
     }
-    
+
     public var isDirectory: Bool {
-        return self[.isDirectoryKey] as? Bool ?? false
+        value(forKey: .isDirectoryKey)
     }
-    
+
     public var isRegularFile: Bool {
-        return self[.isRegularFileKey] as? Bool ?? false
+        value(forKey: .isRegularFileKey)
     }
-    
+
     public var isSymbolicLink: Bool {
-        return self[.isSymbolicLinkKey] as? Bool ?? false
+        value(forKey: .isSymbolicLinkKey)
     }
-    
+
     public var fileSize: Int64? {
-        return self[.fileSizeKey] as? Int64
+        value(forKey: .fileSizeKey)
     }
-    
+
     public var attributeModificationDate: Date? {
-        return self[.attributeModificationDateKey] as? Date
+        value(forKey: .attributeModificationDateKey)
     }
-    
+
     public var contentModificationDate: Date? {
-        return self[.contentModificationDateKey] as? Date
+        value(forKey: .contentModificationDateKey)
     }
-    
+
     public var contentAccessDate: Date? {
-        return self[.contentAccessDateKey] as? Date
+        value(forKey: .contentAccessDateKey)
     }
-    
+
     public var creationDate: Date? {
-        return self[.creationDateKey] as? Date
+        value(forKey: .creationDateKey)
     }
 }
 
-extension Array where Element == [URLResourceKey: Any] {
-    func sortedByPath(_ comparison: ComparisonResult) -> [[URLResourceKey: Any]] {
-        return sorted {
+extension Array where Element == [URLResourceKey: any Sendable] {
+    func sortedByPath(_ comparison: ComparisonResult) -> [[URLResourceKey: any Sendable]] {
+        sorted {
             guard let firstPath = $0.path, let secPath = $1.path else {
                 return false
             }
             return firstPath.localizedStandardCompare(secPath) == comparison
         }
     }
-    
+
     var overallSize: Int64 {
-        return reduce(0, { (result, value) -> Int64 in
+        reduce(0) { result, value -> Int64 in
             guard value.isRegularFile else { return result }
             return result + (value.fileSize ?? 0)
-        })
+        }
     }
 }
 
@@ -131,78 +169,111 @@ extension Array where Element == SMB2Share {
     }
 }
 
-extension Date {
-    init(_ timespec: timespec) {
-        self.init(timeIntervalSince1970: TimeInterval(timespec.tv_sec) + TimeInterval(timespec.tv_nsec / 1000) / TimeInterval(USEC_PER_SEC))
+extension RangeExpression where Bound: FixedWidthInteger {
+    var int64Range: Range<Int64> {
+        let range: Range<Bound> = relative(to: 0..<Bound.max)
+        let lower = Int64(exactly: range.lowerBound) ?? (Int64.max - 1)
+        let upper = Int64(exactly: range.upperBound) ?? Int64.max
+        return lower..<upper
     }
 }
 
-extension Data {    
-    mutating func append<T: FixedWidthInteger>(value: T) {
+extension Date {
+    init(_ timespec: timespec) {
+        self.init(
+            timeIntervalSince1970: TimeInterval(timespec.tv_sec) + TimeInterval(
+                timespec.tv_nsec / 1000
+            ) / TimeInterval(USEC_PER_SEC)
+        )
+    }
+}
+
+extension timespec {
+    init(_ date: Date) {
+        let interval = date.timeIntervalSince1970
+        self.init(tv_sec: .init(interval), tv_nsec: Int(interval.truncatingRemainder(dividingBy: 1) * Double(NSEC_PER_SEC)))
+    }
+}
+
+extension Data {
+    init<T: FixedWidthInteger>(value: T) {
         var value = value.littleEndian
         let bytes = Swift.withUnsafeBytes(of: &value) { Array($0) }
-        append(contentsOf: bytes)
+        self.init(bytes)
     }
-    
+
+    mutating func append<T: FixedWidthInteger>(value: T) {
+        append(Data(value: value))
+    }
+
+    init(value uuid: UUID) {
+        self.init([
+            uuid.uuid.3, uuid.uuid.2, uuid.uuid.1, uuid.uuid.0,
+            uuid.uuid.5, uuid.uuid.4, uuid.uuid.7, uuid.uuid.6,
+            uuid.uuid.8, uuid.uuid.9, uuid.uuid.10, uuid.uuid.11,
+            uuid.uuid.12, uuid.uuid.13, uuid.uuid.14, uuid.uuid.15,
+        ])
+    }
+
     mutating func append(value uuid: UUID) {
-        // Microsoft GUID is mixed-endian
-        append(contentsOf: [uuid.uuid.3,  uuid.uuid.2,  uuid.uuid.1,  uuid.uuid.0,
-                            uuid.uuid.5,  uuid.uuid.4,  uuid.uuid.7,  uuid.uuid.6,
-                            uuid.uuid.8,  uuid.uuid.9,  uuid.uuid.10, uuid.uuid.11,
-                            uuid.uuid.12, uuid.uuid.13, uuid.uuid.14, uuid.uuid.15])
+        append(Data(value: uuid))
     }
-    
-    func scanValue<T: FixedWidthInteger>(offset: Int, as: T.Type) -> T? {
+
+    func scanValue<T: FixedWidthInteger>(offset: Int, as _: T.Type) -> T? {
         guard count >= offset + MemoryLayout<T>.size else { return nil }
         return T(littleEndian: withUnsafeBytes { $0.load(fromByteOffset: offset, as: T.self) })
     }
-    
-    func scanInt<T: FixedWidthInteger>(offset: Int, as: T.Type) -> Int? {
-        return scanValue(offset: offset, as: T.self).map(Int.init)
+
+    func scanInt<T: FixedWidthInteger & SendableMetatype>(offset: Int, as _: T.Type) -> Int? {
+        scanValue(offset: offset, as: T.self).map(Int.init)
     }
+}
+
+extension CharacterSet {
+    static let pathSeparator = CharacterSet(charactersIn: "/\\")
 }
 
 extension String {
-    var canonical: String {
-        return trimmingCharacters(in: .init(charactersIn: "/\\"))
+    var trimmedPath: String {
+        trimmingCharacters(in: .pathSeparator)
+    }
+    
+    func appendingPath(_ component: String, isDirectory: Bool = false) -> String {
+        var result = self
+        if result.hasSuffix("/") || result.hasSuffix("\\") {
+            result.removeLast()
+        }
+        result = self + "/" + component.trimmedPath
+        if isDirectory && !result.hasSuffix("/") {
+            result += "/"
+        }
+        return result
+    }
+    
+    var pathComponents: (dirName: String, fileName: String) {
+        guard let slashIndex = lastIndex(where: { $0 == "/" || $0 == "\\" }) else {
+            return ("", self)
+        }
+        let dirName = String(self[startIndex..<slashIndex])
+        let fileName = String(self[index(after: slashIndex)...]).trimmedPath
+        return (dirName, fileName)
     }
 }
 
-extension Stream {
-    func withOpenStream(_ handler: () throws -> Void) rethrows {
-        let shouldCloseStream = streamStatus == .notOpen
-        if streamStatus == .notOpen {
-            open()
+func asyncHandler(_ continuation: CheckedContinuation<Void, any Error>) -> @Sendable (_ error: (any Error)?) -> Void {
+    { error in
+        if let error = error {
+            continuation.resume(throwing: error)
+            return
         }
-        defer {
-            if shouldCloseStream {
-                close()
-            }
-        }
-        try handler()
+        continuation.resume(returning: ())
     }
 }
 
-extension InputStream {
-    func readData(maxLength length: Int) throws -> Data {
-        var buffer = [UInt8](repeating: 0, count: length)
-        let result = read(&buffer, maxLength: buffer.count)
-        if result < 0 {
-            throw streamError ?? POSIXError(.EIO, description: "Unknown stream error.")
-        } else {
-            return Data(buffer.prefix(result))
-        }
-    }
-}
-
-extension OutputStream {
-    func write<DataType: DataProtocol>(_ data: DataType) throws -> Int {
-        var buffer = Array(data)
-        let result = write(&buffer, maxLength: buffer.count)
-        if result < 0 {
-            throw streamError ?? POSIXError(.EIO, description: "Unknown stream error.")
-        } else {
-            return result
-        }
+func asyncHandler<T>(_ continuation: CheckedContinuation<T, any Error>)
+    -> @Sendable (Result<T, any Error>) -> Void where T: Sendable
+{
+    { result in
+        continuation.resume(with: result)
     }
 }
